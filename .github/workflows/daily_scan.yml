@@ -1,0 +1,32 @@
+name: Bot Mua Sam Cong Daily
+
+on:
+  schedule:
+    # 01:00 UTC = 08:00 AM giờ Việt Nam
+    - cron: '0 1 * * *'
+  workflow_dispatch: # Giúp bạn có thể bấm nút "Run" thủ công để test
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests playwright
+          python -m playwright install chromium
+
+      - name: Run Bot
+        env:
+          # Truyền Secret vào code
+          TRELLO_API_KEY: ${{ secrets.TRELLO_API_KEY }}
+          TRELLO_TOKEN: ${{ secrets.TRELLO_TOKEN }}
+          TRELLO_LIST_ID: ${{ secrets.TRELLO_LIST_ID }}
+        run: python bot_thau.py
