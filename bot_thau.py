@@ -13,10 +13,16 @@ TRELLO_TOKEN = os.environ.get('TRELLO_TOKEN')
 TRELLO_LIST_ID = os.environ.get('TRELLO_LIST_ID')
 
 KEYWORDS = [
-    "âm thanh hội trường", "hội nghị truyền hình", "phòng họp trực tuyến",
-    "hệ thống âm thanh", "màn hình led", "thiết bị hội thảo",
-    "máy tính xách tay", "thiết bị công nghệ thông tin",
-    "phần mềm máy chủ", "máy chủ", "thiết bị tin học"
+    "âm thanh",               # Thay cho "hệ thống âm thanh" để lấy rộng hơn
+    "hội nghị truyền hình",
+    "phòng họp",               # Thay cho "phòng họp trực tuyến"
+    "màn hình led",
+    "thiết bị hội thảo",
+    "micro",                  # Thêm từ khóa này vì bạn mạnh về mảng micro
+    "máy tính",               # Thay cho "máy tính xách tay" để lấy cả để bàn
+    "thiết bị công nghệ thông tin",
+    "phần mềm",                # Lấy rộng hơn "phần mềm máy chủ"
+    "máy chủ"
 ]
 
 SCAN_LIMIT = 20
