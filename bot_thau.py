@@ -12,25 +12,19 @@ TRELLO_API_KEY = os.environ.get('TRELLO_API_KEY')
 TRELLO_TOKEN = os.environ.get('TRELLO_TOKEN')
 TRELLO_LIST_ID = os.environ.get('TRELLO_LIST_ID')
 
+# Danh sách từ khóa ngắn gọn để quét rộng hơn
 KEYWORDS = [
-    "âm thanh",               # Thay cho "hệ thống âm thanh" để lấy rộng hơn
-    "hội nghị truyền hình",
-    "phòng họp",               # Thay cho "phòng họp trực tuyến"
-    "màn hình led",
-    "thiết bị hội thảo",
-    "micro",                  # Thêm từ khóa này vì bạn mạnh về mảng micro
-    "máy tính",               # Thay cho "máy tính xách tay" để lấy cả để bàn
-    "thiết bị công nghệ thông tin",
-    "phần mềm",                # Lấy rộng hơn "phần mềm máy chủ"
-    "máy chủ"
+    "âm thanh", "hội nghị truyền hình", "phòng họp", "màn hình led",
+    "thiết bị hội thảo", "micro", "máy tính", "thiết bị công nghệ thông tin",
+    "phần mềm", "máy chủ"
 ]
 
 SCAN_LIMIT = 20
-MAX_CARDS_PER_KEYWORD = 3
+MAX_CARDS_PER_KEYWORD = 5
 HISTORY_FILE = "processed_ids.txt"
 
 # ==========================================
-# 2. HÀM HỖ TRỢ (GIỮ NGUYÊN & TỐI ƯU)
+# 2. HÀM HỖ TRỢ
 # ==========================================
 def load_processed_ids():
     if not os.path.exists(HISTORY_FILE): 
@@ -44,6 +38,7 @@ def save_processed_id(bid_id):
         f.write(f"{bid_id}\n")
 
 def parse_date_flexible(date_str):
+    """Xử lý định dạng ngày tháng từ web"""
     if not date_str: return None
     formats = ["%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f", "%d/%m/%Y %H:%M", "%d/%m/%Y"]
     for fmt in formats:
@@ -64,33 +59,43 @@ def create_trello_card(item, keyword_tag):
     bid_name = safe_get_text(item.get('bidName') or "Không tên")
     item_id = item.get('id')
     
+    # Chuyển đổi bidCloseDate thành Trello Due Date
+    close_date_str = item.get('bidCloseDate')
+    trello_due_date = None
+    if close_date_str:
+        dt_obj = parse_date_flexible(close_date_str)
+        if dt_obj:
+            trello_due_date = dt_obj.isoformat()
+
     link = f"https://muasamcong.mpi.gov.vn/web/guest/contractor-selection?p_p_id=egpportalcontractorselectionv2_WAR_egpportalcontractorselectionv2&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_egpportalcontractorselectionv2_WAR_egpportalcontractorselectionv2_render=detail-v2&type=es-notify-contractor&step=tbmt&id={item_id}&notifyId={item_id}&notifyNo={bid_no}"
     
     price = item.get('investTotal', 0)
     price_str = f"{price:,} VNĐ" if isinstance(price, (int, float)) else str(price)
     
-    desc = f"### 🏷️ Từ khóa: {keyword_tag}\n---\n- **Mã TBMT:** {bid_no}\n- **Bên mời thầu:** {item.get('investorName')}\n- **Giá:** {price_str}\n- **Đóng thầu:** {item.get('bidCloseDate')}\n\n[🔗 Xem chi tiết]({link})"
+    desc = f"### 🏷️ Từ khóa: {keyword_tag}\n---\n- **Mã TBMT:** {bid_no}\n- **Bên mời thầu:** {item.get('investorName')}\n- **Giá:** {price_str}\n- **Đóng thầu:** {close_date_str}\n\n[🔗 Xem chi tiết]({link})"
 
-    query = {'key': TRELLO_API_KEY, 'token': TRELLO_TOKEN, 'idList': TRELLO_LIST_ID, 'name': f"[{bid_no}] {bid_name}", 'desc': desc, 'pos': 'top'}
+    query = {
+        'key': TRELLO_API_KEY, 'token': TRELLO_TOKEN, 'idList': TRELLO_LIST_ID, 
+        'name': f"[{bid_no}] {bid_name}", 'desc': desc, 
+        'due': trello_due_date, # Tự động điền ngày hết hạn vào Trello
+        'pos': 'top'
+    }
+    
     if requests.post(url, params=query).status_code == 200:
         print(f"   ✅ Trello OK: [{bid_no}]")
         save_processed_id(bid_no)
         return True
     return False
 
-# ==========================================
-# 3. CHƯƠNG TRÌNH CHÍNH
-# ==========================================
 def run_bot():
     processed_ids = load_processed_ids()
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True) # Headless=True khi chạy GitHub
+        browser = p.chromium.launch(headless=True)
         page = browser.new_page(user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
         try:
-            print("🌍 Khởi tạo tại trang chủ...")
             page.goto("https://muasamcong.mpi.gov.vn/", timeout=90000)
-            page.wait_for_timeout(5000) # Đợi dọn dẹp dữ liệu rác ban đầu
+            page.wait_for_timeout(5000)
 
             for keyword in KEYWORDS:
                 print(f"\n🔎 Tìm kiếm: '{keyword}'")
@@ -101,7 +106,6 @@ def run_bot():
                 page.wait_for_selector(search_input)
                 page.fill(search_input, keyword)
 
-                # CHỐNG NHẦM: Đợi gói tin phản hồi phải chứa keyword trong response
                 try:
                     with page.expect_response(lambda r: "contractor-selection" in r.url and r.status == 200, timeout=45000) as resp:
                         page.keyboard.press("Enter")
@@ -111,14 +115,13 @@ def run_bot():
                     
                     if not items: continue
 
-                    # KIỂM TRA XÁC SUẤT: Nếu gói đầu tiên hoàn toàn không liên quan, bỏ qua kết quả này
+                    # Kiểm tra xác suất lấy nhầm dữ liệu
                     first_name = safe_get_text(items[0].get('bidName')).lower()
                     keyword_parts = keyword.lower().split()
                     if not any(part in first_name for part in keyword_parts):
-                        print(f"   🚨 Phát hiện lấy nhầm dữ liệu (Băng tải/Cơ khí). Đang bỏ qua...")
+                        print(f"   🚨 Nghi vấn lấy nhầm dữ liệu cũ. Bỏ qua...")
                         continue
 
-                    print(f"   📦 Tìm thấy {len(items)} kết quả hợp lệ.")
                     count = 0
                     now = datetime.now()
                     for item in items:
@@ -127,11 +130,11 @@ def run_bot():
                         if bid_code in processed_ids: continue
                         
                         close_date = parse_date_flexible(item.get('bidCloseDate'))
-                        if close_date and close_date < now: continue
+                        if close_date and close_date < now: continue # Lọc gói hết hạn
                         
                         if create_trello_card(item, keyword): count += 1
                 except Exception as e:
-                    print(f"   ⚠️ Lỗi tìm kiếm từ khóa '{keyword}': {e}")
+                    print(f"   ⚠️ Lỗi tìm kiếm '{keyword}': {e}")
         finally:
             browser.close()
 
