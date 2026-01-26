@@ -119,7 +119,7 @@ def fetch_khlcnt_detail_json(page, plan_no: str, plan_id: str):
     def handle_plan_response(response):
         try:
              if is_target_xhr(response):
-                print(f"      📡 Captured Plan API: {response.url}")
+                # print(f"      📡 Captured Plan API: {response.url}")
                 json_data = response.json()
                 captured_plan_data.append(json_data)
         except:
@@ -170,7 +170,7 @@ def fetch_tbmt_detail_json(page, tbmt_id):
                 and "application/json" in (response.headers or {}).get("content-type", "")
                 and "contractor-selection" in response.url
             ):
-                print(f"      📡 Captured: {response.url}")
+                # print(f"      📡 Captured: {response.url}")
                 json_data = response.json()
                 captured_data.append(json_data)
                 
