@@ -67,21 +67,22 @@ def create_trello_card(item, keyword_tag):
         if dt_obj:
             trello_due_date = dt_obj.isoformat()
     
-    # Lấy thêm thông tin Kế hoạch lựa chọn nhà thầu (KHLCNT)
-    plan_no = safe_get_text(item.get('planNo') or "N/A") # Mã KHLCNT để xem dự toán
-    plan_id = item.get('planId') or item_id # ID để tạo link kế hoạch
+# --- XỬ LÝ LINK KHLCNT (DỰ TOÁN) ---
+    # Lấy planNo (PL...) và planId (UUID của kế hoạch)
+    plan_no = safe_get_text(item.get('planNo') or "N/A")
+    plan_id = item.get('planId') # API thường trả về trường này
     
+    # Nếu không có planId thì dùng tạm item_id (dù có thể sai nhưng đỡ lỗi link)
+    # Nhưng ưu tiên planId để ra đúng link bạn cung cấp
+    real_plan_id = plan_id if plan_id else item_id
+
     # Link TBMT (Chi tiết gói thầu)
     link_tbmt = f"https://muasamcong.mpi.gov.vn/web/guest/contractor-selection?p_p_id=egpportalcontractorselectionv2_WAR_egpportalcontractorselectionv2&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_egpportalcontractorselectionv2_WAR_egpportalcontractorselectionv2_render=detail-v2&type=es-notify-contractor&step=tbmt&id={item_id}&notifyId={item_id}&notifyNo={bid_no}"
     
-    # Link KHLCNT (Nơi xem Dự toán gói thầu)
-    link_khlcnt = f"https://muasamcong.mpi.gov.vn/web/guest/contractor-selection?render=detail-v2&type=plan-project&id={plan_id}"
-
-    # Định dạng tiền tệ
-    price = item.get('investTotal', 0)
-    price_str = f"{price:,} VNĐ" if isinstance(price, (int, float)) else str(price)
+    # Link KHLCNT (Chuẩn cấu trúc bạn gửi: type=es-plan-project-p)
+    link_khlcnt = f"https://muasamcong.mpi.gov.vn/web/guest/contractor-selection?p_p_id=egpportalcontractorselectionv2_WAR_egpportalcontractorselectionv2&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_egpportalcontractorselectionv2_WAR_egpportalcontractorselectionv2_render=detail-v2&type=es-plan-project-p&stepCode=plan-step-1&id={real_plan_id}&planNo={plan_no}"
     
-    desc = f"### 🏷️ Từ khóa: {keyword_tag}\n---\n- **Mã TBMT:** {bid_no}\n- **Bên mời thầu:** {item.get('investorName')}\n- **Giá:** {price_str}\n- **Đóng thầu:** {close_date_str}\n\n[🔗 Xem chi tiết]({link_tbmt})"
+    desc = f"### 🏷️ Từ khóa: {keyword_tag}\n---\n- **Mã TBMT:** {bid_no}\n- **Bên mời thầu:** {item.get('investorName')}\n- **Giá:** {price_str}\n- **Đóng thầu:** {close_date_str}\n\n[🔗 Xem chi tiết]({link_tbmt}) ({link_khlcnt})"
 
     query = {
         'key': TRELLO_API_KEY, 'token': TRELLO_TOKEN, 'idList': TRELLO_LIST_ID, 
