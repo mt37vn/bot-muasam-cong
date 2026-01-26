@@ -292,6 +292,7 @@ def get_khlcnt_price_from_plan(kh_page, plan_cache, plan_no, tbmt_notify_no, tbm
         return None, None
         
     # Check cache
+    guarantee_val = None
     if plan_no and plan_no in plan_cache:
         plan_detail = plan_cache[plan_no]
     else:
@@ -304,6 +305,17 @@ def get_khlcnt_price_from_plan(kh_page, plan_cache, plan_no, tbmt_notify_no, tbm
             tbmt_detail = fetch_tbmt_detail_json(kh_page, tbmt_id)
             if tbmt_detail:
                 data_obj = tbmt_detail.get('data') or tbmt_detail
+                
+                # Extract Guarantee Value (Bid Security)
+                # Check bidNotification or bidoNotifyContractorM (older/variant structures)
+                bid_notif = (
+                    data_obj.get('bidNoContractorResponse', {}).get('bidNotification') 
+                    or data_obj.get('bidoNotifyContractorM')
+                    or data_obj.get('bidNotification')
+                )
+                if bid_notif:
+                    guarantee_val = bid_notif.get('guaranteeValue')
+
                 plan_id = data_obj.get('planId') or data_obj.get('idKhlcnt')
                 
                 # Check for nested bidpPlanDetail (common in new API)
@@ -315,7 +327,7 @@ def get_khlcnt_price_from_plan(kh_page, plan_cache, plan_no, tbmt_notify_no, tbm
                     if direct_price:
                         print(f"      💰 Info: Found Price in TBMT Detail. Skipping Plan fetch.")
                         # Simulate plan detail for cache if needed, or just return
-                        return direct_price, direct_unit
+                        return direct_price, direct_unit, guarantee_val
                     
                     if not plan_id:
                         plan_id = plan_inner.get('planId') or plan_inner.get('id')
@@ -329,7 +341,7 @@ def get_khlcnt_price_from_plan(kh_page, plan_cache, plan_no, tbmt_notify_no, tbm
             
         if not plan_id:
             print("      ❌ Fallback failed. Cannot find Plan ID.")
-            return None, None
+            return None, None, guarantee_val
         
         print(f"      ✅ Plan ID Found: {plan_id}")
         print(f"      📂 Fetching Plan Detail (No: {plan_no}, ID: {plan_id})...")
@@ -338,7 +350,7 @@ def get_khlcnt_price_from_plan(kh_page, plan_cache, plan_no, tbmt_notify_no, tbm
             plan_cache[plan_no] = plan_detail # Save to cache
         
     if not plan_detail:
-        return None, None
+        return None, None, guarantee_val
 
     # 3. Tìm gói thầu trong Plan detail khớp notifyNo
     # Flatten list packages
@@ -356,18 +368,21 @@ def get_khlcnt_price_from_plan(kh_page, plan_cache, plan_no, tbmt_notify_no, tbm
     
     # Matching
     tbmt_notify_no = tbmt_notify_no.strip()
+    price, unit = None, None
     for pkg in candidates:
         # Check notifyNo directly
         if safe_get_text(pkg.get('notifyNo')).strip() == tbmt_notify_no:
-            return _extract_price(pkg)
+            price, unit = _extract_price(pkg)
+            break
             
         # Check inside linkNotifyInfo
         link_info = _try_parse_json_maybe(pkg.get('linkNotifyInfo'))
         if isinstance(link_info, dict):
             if safe_get_text(link_info.get('notifyNo')).strip() == tbmt_notify_no:
-                return _extract_price(pkg)
+                price, unit = _extract_price(pkg)
+                break
                 
-    return None, None
+    return price, unit, guarantee_val
 
 def _extract_price(pkg):
     price = pkg.get("bidPrice") or pkg.get("bidEstimatePrice") or pkg.get("planItemPrice")
@@ -377,7 +392,7 @@ def _extract_price(pkg):
 # ==========================================
 # 4. TẠO CARD TRELLO
 # ==========================================
-def create_trello_card(item, keyword_tag, kh_price, kh_unit):
+def create_trello_card(item, keyword_tag, kh_price, kh_unit, guarantee_val):
     url_api = "https://api.trello.com/1/cards"
     
     bid_no = safe_get_text(item.get('notifyNo') or item.get('bidNo') or "N/A")
@@ -398,11 +413,10 @@ def create_trello_card(item, keyword_tag, kh_price, kh_unit):
     )
 
     # Format Giá
-    # Giá TBMT (Invest Total)
-    tbmt_price = item.get('investTotal', 0)
-    tbmt_price_str = format_vnd(tbmt_price) if tbmt_price else "N/A"
+    # Số tiền bảo đảm dự thầu
+    guarantee_str = format_vnd(guarantee_val) if guarantee_val is not None else "N/A"
     
-    # Giá KHLCNT
+    # Giá KHLCNT (Giá gói thầu)
     kh_price_str = "N/A"
     if kh_price:
         kh_price_str = format_vnd(kh_price)
@@ -414,7 +428,7 @@ def create_trello_card(item, keyword_tag, kh_price, kh_unit):
         f"- **Mã TBMT:** {bid_no}\n"
         f"- **Mã Plan:** {plan_no}\n"
         f"- **Bên mời thầu:** {item.get('investorName')}\n"
-        f"- **Giá (TBMT):** {tbmt_price_str}\n"
+        f"- **Số tiền bảo đảm:** {guarantee_str}\n"
         f"- **Giá Dự Toán (KHLCNT):** {kh_price_str}\n"
         f"- **Đóng thầu:** {close_date_str}\n\n"
         f"[🔗 Xem chi tiết]({link})"
@@ -550,20 +564,20 @@ def run_bot():
                     
                     # 3. Lookup Price from Plan
                     plan_no = safe_get_text(item.get('planNo')).strip()
-                    kh_price, kh_unit = None, None
+                    kh_price, kh_unit, guarantee_val = None, None, None
                     
                     if plan_no:
                         # Dùng page phụ (kh_page) để tra cứu Plan theo flow mới (TBMT Detail -> Plan ID)
                         # Cần truyền thêm item['id'] (TBMT ID)
                         tbmt_id = safe_get_text(item.get('id'))
-                        kh_price, kh_unit = get_khlcnt_price_from_plan(kh_page, plan_cache, plan_no, bid_no, tbmt_id)
+                        kh_price, kh_unit, guarantee_val = get_khlcnt_price_from_plan(kh_page, plan_cache, plan_no, bid_no, tbmt_id)
                         if kh_price:
                             print(f"      💰 Found Plan Price: {format_vnd(kh_price)}")
                         else:
                             print(f"      ⚠️ No Plan Price found.")
                     
                     # 4. Create Card
-                    if create_trello_card(item, keyword, kh_price, kh_unit):
+                    if create_trello_card(item, keyword, kh_price, kh_unit, guarantee_val):
                         count_added += 1
                         processed_ids.add(bid_no)
                         
