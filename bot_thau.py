@@ -81,6 +81,10 @@ def create_trello_card(item, keyword_tag):
     
     # Link KHLCNT (Chuẩn cấu trúc bạn gửi: type=es-plan-project-p)
     link_khlcnt = f"https://muasamcong.mpi.gov.vn/web/guest/contractor-selection?p_p_id=egpportalcontractorselectionv2_WAR_egpportalcontractorselectionv2&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_egpportalcontractorselectionv2_WAR_egpportalcontractorselectionv2_render=detail-v2&type=es-plan-project-p&stepCode=plan-step-1&id={real_plan_id}&planNo={plan_no}"
+
+    # Định dạng giá
+    price = item.get('investTotal', 0)
+    price_str = f"{price:,} VNĐ" if isinstance(price, (int, float)) else str(price)
     
     desc = f"### 🏷️ Từ khóa: {keyword_tag}\n---\n- **Mã TBMT:** {bid_no}\n- **Bên mời thầu:** {item.get('investorName')}\n- **Giá:** {price_str}\n- **Đóng thầu:** {close_date_str}\n\n[🔗 Xem chi tiết]({link_tbmt}) ({link_khlcnt})"
 
