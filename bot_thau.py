@@ -66,13 +66,22 @@ def create_trello_card(item, keyword_tag):
         dt_obj = parse_date_flexible(close_date_str)
         if dt_obj:
             trello_due_date = dt_obj.isoformat()
-
-    link = f"https://muasamcong.mpi.gov.vn/web/guest/contractor-selection?p_p_id=egpportalcontractorselectionv2_WAR_egpportalcontractorselectionv2&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_egpportalcontractorselectionv2_WAR_egpportalcontractorselectionv2_render=detail-v2&type=es-notify-contractor&step=tbmt&id={item_id}&notifyId={item_id}&notifyNo={bid_no}"
     
+    # Lấy thêm thông tin Kế hoạch lựa chọn nhà thầu (KHLCNT)
+    plan_no = safe_get_text(item.get('planNo') or "N/A") # Mã KHLCNT để xem dự toán
+    plan_id = item.get('planId') or item_id # ID để tạo link kế hoạch
+    
+    # Link TBMT (Chi tiết gói thầu)
+    link_tbmt = f"https://muasamcong.mpi.gov.vn/web/guest/contractor-selection?p_p_id=egpportalcontractorselectionv2_WAR_egpportalcontractorselectionv2&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_egpportalcontractorselectionv2_WAR_egpportalcontractorselectionv2_render=detail-v2&type=es-notify-contractor&step=tbmt&id={item_id}&notifyId={item_id}&notifyNo={bid_no}"
+    
+    # Link KHLCNT (Nơi xem Dự toán gói thầu)
+    link_khlcnt = f"https://muasamcong.mpi.gov.vn/web/guest/contractor-selection?render=detail-v2&type=plan-project&id={plan_id}"
+
+    # Định dạng tiền tệ
     price = item.get('investTotal', 0)
     price_str = f"{price:,} VNĐ" if isinstance(price, (int, float)) else str(price)
     
-    desc = f"### 🏷️ Từ khóa: {keyword_tag}\n---\n- **Mã TBMT:** {bid_no}\n- **Bên mời thầu:** {item.get('investorName')}\n- **Giá:** {price_str}\n- **Đóng thầu:** {close_date_str}\n\n[🔗 Xem chi tiết]({link})"
+    desc = f"### 🏷️ Từ khóa: {keyword_tag}\n---\n- **Mã TBMT:** {bid_no}\n- **Bên mời thầu:** {item.get('investorName')}\n- **Giá:** {price_str}\n- **Đóng thầu:** {close_date_str}\n\n[🔗 Xem chi tiết]({link_tbmt})"
 
     query = {
         'key': TRELLO_API_KEY, 'token': TRELLO_TOKEN, 'idList': TRELLO_LIST_ID, 
