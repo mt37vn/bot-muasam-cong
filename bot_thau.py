@@ -521,7 +521,7 @@ def run_bot():
                     with page.expect_response(is_tbmt_api, timeout=30000) as resp:
                         page.keyboard.press("Enter")
                     
-                    print(f"      📡 Captured API: {resp.value.url}")
+                    # print(f"      📡 Captured API: {resp.value.url}")
                     data = resp.value.json()
                     # print(f"      📄 Data Keys: {list(data.keys())}")
                 except Exception as e:
