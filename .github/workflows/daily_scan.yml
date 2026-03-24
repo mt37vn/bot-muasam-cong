@@ -36,6 +36,6 @@ jobs:
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git add processed_ids.txt
+          git add processed_ids.txt discarded_ids.txt
           git commit -m "Update processed bidding IDs" || exit 0
           git push
