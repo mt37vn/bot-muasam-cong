@@ -39,7 +39,7 @@ UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML,
 # ==========================================
 # 2. HÀM HỖ TRỢ
 # ==========================================
-def load_processed_ids():
+def load_processed_ids() -> set:
     if not os.path.exists(HISTORY_FILE):
         with open(HISTORY_FILE, "w") as f:
             pass
@@ -51,7 +51,7 @@ def save_processed_id(bid_id):
     with open(HISTORY_FILE, "a", encoding="utf-8") as f:
         f.write(f"{bid_id}\n")
 
-def load_discarded_ids():
+def load_discarded_ids() -> set:
     if not os.path.exists(DISCARD_FILE):
         return set()
     with open(DISCARD_FILE, "r", encoding="utf-8") as f:
@@ -81,7 +81,7 @@ def parse_date_flexible(date_str):
             continue
     return None
 
-def safe_get_text(value):
+def safe_get_text(value) -> str:
     if value is None:
         return ""
     if isinstance(value, list):
@@ -552,8 +552,8 @@ def create_trello_card(item, keyword_tag, kh_price, kh_unit, guarantee_val):
 # 5. MAIN BOT LOOP
 # ==========================================
 def run_bot():
-    processed_ids = load_processed_ids()
-    discarded_ids = load_discarded_ids()
+    processed_ids: set = load_processed_ids()
+    discarded_ids: set = load_discarded_ids()
     HEADLESS_MODE = os.environ.get("HEADLESS_MODE", "True").lower() == "true"
     
     print("🚀 Starting Procurement Bot (Hybrid Strategy)...")
@@ -569,7 +569,7 @@ def run_bot():
         
         try:
             page.set_default_timeout(60000)
-            test_count = 0
+            test_count: int = 0
             
             # --- LOOP KEYWORDS ---
             for keyword in KEYWORDS:
@@ -631,8 +631,8 @@ def run_bot():
                 for item in items:
                     if count_added >= MAX_CARDS_PER_KEYWORD: break
                     
-                    bid_no = safe_get_text(item.get('notifyNo') or item.get('bidNo')).strip()
-                    bid_name = safe_get_text(item.get('bidName')).strip()
+                    bid_no: str = safe_get_text(item.get('notifyNo') or item.get('bidNo')).strip()
+                    bid_name: str = safe_get_text(item.get('bidName')).strip()
                     
                     # Check Expiry
                     close_date_str = item.get('bidCloseDate')
