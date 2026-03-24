@@ -19,6 +19,7 @@ env/
 
 # Runtime data
 processed_ids.txt
+discarded_ids.txt
 *.log
 report.txt
 
