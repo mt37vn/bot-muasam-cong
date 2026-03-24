@@ -27,6 +27,7 @@ KEYWORDS = [
     "phần mềm", "máy chủ"
 ]
 
+VERSION = "1.2.0"
 MAX_CARDS_PER_KEYWORD = 5
 MAX_BID_PRICE = 2_000_000_000
 HISTORY_FILE = "processed_ids.txt"
@@ -104,7 +105,8 @@ def normalize_price(x):
     if isinstance(x, (int, float)):
         return float(x)
     try:
-        return float(str(x).replace(",", "").strip())
+        cleaned = str(x).replace(",", "").replace("VND", "").strip()
+        return float(cleaned)
     except:
         return None
 
@@ -318,7 +320,7 @@ def get_khlcnt_price_from_plan(kh_page, plan_cache, plan_no, tbmt_notify_no, tbm
     2. Vào chi tiết Plan (dùng planId hoặc planNo nếu không có ID) -> Lấy giá.
     """
     if not plan_no and not tbmt_id:
-        return None, None
+        return None, None, None
         
     # Check cache
     guarantee_val = None
@@ -353,7 +355,8 @@ def get_khlcnt_price_from_plan(kh_page, plan_cache, plan_no, tbmt_notify_no, tbm
                     
                     # Try to extract Price directly!
                     direct_price, direct_unit = _extract_price(plan_inner)
-                    if direct_price:
+                    direct_price = normalize_price(direct_price)
+                    if direct_price is not None:
                         print(f"      💰 Info: Found Price in TBMT Detail. Skipping Plan fetch.")
                         # Simulate plan detail for cache if needed, or just return
                         return direct_price, direct_unit, guarantee_val
@@ -402,6 +405,7 @@ def get_khlcnt_price_from_plan(kh_page, plan_cache, plan_no, tbmt_notify_no, tbm
         # Check notifyNo directly
         if safe_get_text(pkg.get('notifyNo')).strip() == tbmt_notify_no:
             price, unit = _extract_price(pkg)
+            price = normalize_price(price)
             break
             
         # Check inside linkNotifyInfo
@@ -409,6 +413,7 @@ def get_khlcnt_price_from_plan(kh_page, plan_cache, plan_no, tbmt_notify_no, tbm
         if isinstance(link_info, dict):
             if safe_get_text(link_info.get('notifyNo')).strip() == tbmt_notify_no:
                 price, unit = _extract_price(pkg)
+                price = normalize_price(price)
                 break
                 
     return price, unit, guarantee_val
@@ -659,14 +664,17 @@ def run_bot():
                         # Cần truyền thêm item['id'] (TBMT ID)
                         tbmt_id = safe_get_text(item.get('id'))
                         kh_price, kh_unit, guarantee_val = get_khlcnt_price_from_plan(kh_page, plan_cache, plan_no, bid_no, tbmt_id)
-                        if kh_price:
+                        if kh_price is not None:
                             print(f"      💰 Found Plan Price: {format_vnd(kh_price)}")
                         else:
                             print(f"      ⚠️ No Plan Price found.")
                     
                     # 4. Check Price Filter
-                    normalized_price = normalize_price(kh_price)
-                    if normalized_price is not None and normalized_price > MAX_BID_PRICE:
+                    normalized_price = kh_price
+                    print("       RAW:", kh_price)
+                    print("       NORMALIZED:", normalized_price)
+                    
+                    if kh_price is not None and kh_price > MAX_BID_PRICE:
                         print(f"      ⚠️ Skip: Price {format_vnd(kh_price)} exceeds MAX_BID_PRICE. Marking as processed.")
                         write_report(item, keyword, kh_price, guarantee_val, "❌ Skipped (Price > 2B)")
                         save_discarded_id(bid_no, "price too high", discarded_ids)
