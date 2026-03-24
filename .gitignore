@@ -25,3 +25,6 @@ report.txt
 
 # Playwright/browser cache
 .playwright/
+pyrightconfig.json
+requirements.txt
+.vscode/settings.json
