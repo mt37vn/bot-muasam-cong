@@ -4,6 +4,11 @@ import requests
 import json
 from datetime import datetime
 from playwright.sync_api import sync_playwright
+from dotenv import load_dotenv
+
+# Tự động nạp các biến từ file .env (dành cho run local development).
+# Hành vi mặc định là KHÔNG ghi đè biến đã tồn tại trong system/CI environment.
+load_dotenv()
 
 # ==========================================
 # 1. CẤU HÌNH
@@ -11,6 +16,10 @@ from playwright.sync_api import sync_playwright
 TRELLO_API_KEY = os.environ.get('TRELLO_API_KEY')
 TRELLO_TOKEN = os.environ.get('TRELLO_TOKEN')
 TRELLO_LIST_ID = os.environ.get('TRELLO_LIST_ID')
+TEST_MODE = os.environ.get("TEST_MODE", "False").lower() == "true"
+
+if not TRELLO_API_KEY:
+    raise ValueError("LỖI: Thiếu biến môi trường TRELLO_API_KEY! Hãy kiểm tra cấu hình .env hoặc biến môi trường hệ thống.")
 
 KEYWORDS = [
     "âm thanh", "hội nghị truyền hình", "phòng họp", "màn hình led",
@@ -19,7 +28,10 @@ KEYWORDS = [
 ]
 
 MAX_CARDS_PER_KEYWORD = 5
+MAX_BID_PRICE = 2_000_000_000
 HISTORY_FILE = "processed_ids.txt"
+DISCARD_FILE = "discarded_ids.txt"
+TEST_MAX_ITEMS = 5
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
@@ -37,6 +49,22 @@ def load_processed_ids():
 def save_processed_id(bid_id):
     with open(HISTORY_FILE, "a", encoding="utf-8") as f:
         f.write(f"{bid_id}\n")
+
+def load_discarded_ids():
+    if not os.path.exists(DISCARD_FILE):
+        return set()
+    with open(DISCARD_FILE, "r", encoding="utf-8") as f:
+        return set(line.split("|")[0].strip() for line in f if line.strip())
+
+def save_discarded_id(bid_id, reason, discarded_set):
+    if bid_id in discarded_set:
+        return
+    discarded_set.add(bid_id)
+    try:
+        with open(DISCARD_FILE, "a", encoding="utf-8") as f:
+            f.write(f"{bid_id} | {reason}\n")
+    except:
+        pass
 
 def parse_date_flexible(date_str):
     if not date_str:
@@ -69,6 +97,16 @@ def format_vnd(x):
         return f"{n:,.0f} VND"
     except:
         return str(x)
+
+def normalize_price(x):
+    if x is None:
+        return None
+    if isinstance(x, (int, float)):
+        return float(x)
+    try:
+        return float(str(x).replace(",", "").strip())
+    except:
+        return None
 
 def _try_parse_json_maybe(s):
     if not s:
@@ -196,15 +234,6 @@ def fetch_tbmt_detail_json(page, tbmt_id):
     try:
         # Detach listener (optional)
         page.remove_listener("response", handle_response)
-        
-        # Save all captured data
-        if captured_data:
-            try:
-                with open("debug_tbmt_detail.json", "w", encoding="utf-8") as f:
-                    json.dump(captured_data, f, ensure_ascii=False, indent=2)
-                # print(f"      🐞 Saved {len(captured_data)} items to debug_tbmt_detail.json")
-            except:
-                pass
         
         if captured_data:
             # Tìm JSON xịn nhất trong đống captured
@@ -389,6 +418,52 @@ def _extract_price(pkg):
     unit = pkg.get("bidPriceUnit") or pkg.get("bidPriceUnitName") or pkg.get("currencyCode")
     return price, unit
 
+
+def write_report(item, keyword, kh_price, guarantee_val, status):
+    if not TEST_MODE:
+        return
+        
+    bid_no = safe_get_text(item.get('notifyNo') or item.get('bidNo') or "N/A")
+    bid_name = safe_get_text(item.get('bidName') or "Không tên")
+    investor = safe_get_text(item.get('investorName'))
+    close_date = safe_get_text(item.get('bidCloseDate'))
+    item_id = safe_get_text(item.get('id'))
+    
+    link = (
+        "https://muasamcong.mpi.gov.vn/web/guest/contractor-selection?"
+        "p_p_id=egpportalcontractorselectionv2_WAR_egpportalcontractorselectionv2"
+        "&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view"
+        "&_egpportalcontractorselectionv2_WAR_egpportalcontractorselectionv2_render=detail-v2"
+        "&type=es-notify-contractor&step=tbmt"
+        f"&id={item_id}&notifyId={item_id}&notifyNo={bid_no}"
+    )
+
+    kh_price_str = format_vnd(kh_price) if kh_price else "N/A"
+    guarantee_str = format_vnd(guarantee_val) if guarantee_val else "N/A"
+    
+    if close_date and "T" in close_date:
+        close_date = close_date.split("T")[0]
+        
+    report_content = (
+        f"\n---\n"
+        f"Keyword: {keyword}\n\n"
+        f"[{bid_no}]\n"
+        f"Tên: {bid_name}\n"
+        f"Bên mời thầu: {investor}\n"
+        f"Giá dự toán: {kh_price_str}\n"
+        f"Bảo đảm dự thầu: {guarantee_str}\n"
+        f"Đóng thầu: {close_date}\n"
+        f"Link: {link}\n\n"
+        f"Status: {status}\n"
+    )
+    
+    try:
+        with open("report.txt", "a", encoding="utf-8") as f:
+            f.write(report_content)
+    except:
+        pass
+
+
 # ==========================================
 # 4. TẠO CARD TRELLO
 # ==========================================
@@ -447,6 +522,15 @@ def create_trello_card(item, keyword_tag, kh_price, kh_unit, guarantee_val):
         dt = parse_date_flexible(close_date_str)
         if dt: query['due'] = dt.isoformat()
 
+    if TEST_MODE:
+        print(f"   🛠️ [TEST MODE] Simulate Trello Card:")
+        print(f"      - Tiêu đề: {query['name']}")
+        print(f"      - Link TBMT: {link}")
+        print(f"      - Tải trọng JSON:\n{json.dumps(query, indent=2, ensure_ascii=False)}")
+        print(f"   ✅ [TEST MODE] Hoàn tất mô phỏng. Bỏ qua gửi request thật nhưng vẫn đánh dấu đã xử lý: [{bid_no}]")
+        save_processed_id(bid_no)
+        return True
+
     try:
         r = requests.post(url_api, params=query)
         if r.status_code == 200:
@@ -464,6 +548,7 @@ def create_trello_card(item, keyword_tag, kh_price, kh_unit, guarantee_val):
 # ==========================================
 def run_bot():
     processed_ids = load_processed_ids()
+    discarded_ids = load_discarded_ids()
     HEADLESS_MODE = os.environ.get("HEADLESS_MODE", "True").lower() == "true"
     
     print("🚀 Starting Procurement Bot (Hybrid Strategy)...")
@@ -479,6 +564,7 @@ def run_bot():
         
         try:
             page.set_default_timeout(60000)
+            test_count = 0
             
             # --- LOOP KEYWORDS ---
             for keyword in KEYWORDS:
@@ -549,14 +635,16 @@ def run_bot():
                         close_date = parse_date_flexible(close_date_str)
                         if close_date and close_date < datetime.now():
                             print(f"      ⚠️ Skip: Expired on {close_date_str}")
+                            save_discarded_id(bid_no, "expired", discarded_ids)
                             continue
                     
                     # Strict Filter
                     if keyword.lower() not in bid_name.lower():
                         print(f"      ⚠️ Skip: Name '{bid_name}' does not contain '{keyword}'")
+                        save_discarded_id(bid_no, "keyword mismatch", discarded_ids)
                         continue
                         
-                    if bid_no in processed_ids:
+                    if not TEST_MODE and bid_no in processed_ids:
                         print(f"      ⚠️ Skip: '{bid_no}' already processed.")
                         continue
                         
@@ -576,10 +664,33 @@ def run_bot():
                         else:
                             print(f"      ⚠️ No Plan Price found.")
                     
-                    # 4. Create Card
+                    # 4. Check Price Filter
+                    normalized_price = normalize_price(kh_price)
+                    if normalized_price is not None and normalized_price > MAX_BID_PRICE:
+                        print(f"      ⚠️ Skip: Price {format_vnd(kh_price)} exceeds MAX_BID_PRICE. Marking as processed.")
+                        write_report(item, keyword, kh_price, guarantee_val, "❌ Skipped (Price > 2B)")
+                        save_discarded_id(bid_no, "price too high", discarded_ids)
+                        save_processed_id(bid_no)
+                        processed_ids.add(bid_no)
+                        if TEST_MODE:
+                            test_count += 1
+                            if test_count >= TEST_MAX_ITEMS:
+                                break
+                        continue
+
+                    write_report(item, keyword, kh_price, guarantee_val, "✅ Eligible")
+                    # 5. Create Card
                     if create_trello_card(item, keyword, kh_price, kh_unit, guarantee_val):
                         count_added += 1
                         processed_ids.add(bid_no)
+                        if TEST_MODE:
+                            test_count += 1
+                            if test_count >= TEST_MAX_ITEMS:
+                                break
+                                
+                if TEST_MODE and test_count >= TEST_MAX_ITEMS:
+                    print(f"\n      🛑 [TEST MODE] Reached max {TEST_MAX_ITEMS} items. Stopping.")
+                    break
                         
         finally:
             browser.close()
