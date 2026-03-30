@@ -88,3 +88,5 @@ IB2600097107 | expired
 IB2600105791 | price too high
 IB2600112863 | price too high
 IB2600110943 | price too high
+IB2600115879 | price too high
+IB2600122937 | price too high
