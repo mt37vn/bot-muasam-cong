@@ -97,3 +97,16 @@ IB2600063424 | price too high
 IB2600117911 | price too high
 IB2600100629 | price too high
 IB2600106466 | price too high
+IB2600121964 | price too high
+IB2600063860 | price too high
+IB2600064201 | price too high
+IB2600105997 | price too high
+IB2600126384 | keyword mismatch
+IB2600113169 | price too high
+IB2600100820 | price too high
+IB2600075937 | price too high
+IB2600086199 | price too high
+IB2600118210 | price too high
+IB2600110639 | price too high
+IB2600119504 | price too high
+IB2600119960 | keyword mismatch
