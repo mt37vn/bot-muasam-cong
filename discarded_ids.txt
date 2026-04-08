@@ -133,3 +133,10 @@ IB2600137052 | price too high
 IB2600132137 | price too high
 IB2600127615 | price too high
 IB2600134384 | price too high
+IB2600073806 | price too high
+IB2600140208 | keyword mismatch
+IB2600135459 | keyword mismatch
+IB2600140247 | keyword mismatch
+IB2600135010 | price too high
+IB2600135297 | price too high
+IB2600080761 | price too high
