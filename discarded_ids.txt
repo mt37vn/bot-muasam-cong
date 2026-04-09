@@ -140,3 +140,11 @@ IB2600140247 | keyword mismatch
 IB2600135010 | price too high
 IB2600135297 | price too high
 IB2600080761 | price too high
+IB2600125678 | expired
+IB2600138080 | price too high
+IB2600138960 | price too high
+IB2600138804 | price too high
+IB2600140146 | price too high
+IB2600134746 | price too high
+IB2600131380 | price too high
+IB2600127736 | price too high
