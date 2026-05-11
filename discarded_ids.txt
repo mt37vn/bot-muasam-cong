@@ -298,3 +298,5 @@ IB2600197906 | price too high
 IB2600116226 | price too high
 IB2600197419 | price too high
 IB2600177147 | price too high
+IB2600191203 | price too high
+IB2600178958 | price too high
