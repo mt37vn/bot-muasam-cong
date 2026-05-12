@@ -300,3 +300,8 @@ IB2600197419 | price too high
 IB2600177147 | price too high
 IB2600191203 | price too high
 IB2600178958 | price too high
+IB2600196694 | price too high
+IB2600170318 | keyword mismatch
+IB2600177138 | keyword mismatch
+IB2600190605 | price too high
+IB2600170294 | price too high
