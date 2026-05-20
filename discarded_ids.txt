@@ -351,3 +351,12 @@ IB2600208700 | price too high
 IB2600215275 | price too high
 IB2600219865 | price too high
 IB2600200462 | price too high
+IB2600204198 | expired
+IB2600217854 | price too high
+IB2600180003 | expired
+IB2600213883 | keyword mismatch
+IB2600220935 | price too high
+IB2600222025 | keyword mismatch
+IB2600219516 | keyword mismatch
+IB2600183888 | keyword mismatch
+IB2600209322 | price too high
