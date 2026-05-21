@@ -360,3 +360,8 @@ IB2600222025 | keyword mismatch
 IB2600219516 | keyword mismatch
 IB2600183888 | keyword mismatch
 IB2600209322 | price too high
+IB2600211769 | price too high
+IB2600224387 | price too high
+IB2600119149 | price too high
+IB2600199565 | price too high
+IB2600206084 | price too high
