@@ -365,3 +365,10 @@ IB2600224387 | price too high
 IB2600119149 | price too high
 IB2600199565 | price too high
 IB2600206084 | price too high
+IB2600229530 | price too high
+IB2600223587 | keyword mismatch
+IB2600213304 | price too high
+IB2600210360 | price too high
+IB2600220526 | price too high
+IB2600225282 | price too high
+IB2600149585 | price too high
