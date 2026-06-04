@@ -457,3 +457,9 @@ IB2600245848 | keyword mismatch
 IB2600251670 | keyword mismatch
 IB2600257930 | keyword mismatch
 IB2600253022 | price too high
+IB2600239343 | expired
+IB2600262756 | price too high
+IB2600260899 | price too high
+IB2600260869 | keyword mismatch
+IB2600257443 | price too high
+IB2600247663 | price too high
