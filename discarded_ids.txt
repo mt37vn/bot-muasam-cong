@@ -485,3 +485,12 @@ IB2600265006 | price too high
 IB2600271347 | keyword mismatch
 IB2600271671 | price too high
 IB2600256595 | price too high
+IB2600275450 | price too high
+IB2600275335 | price too high
+IB2600256936 | expired
+IB2600267517 | price too high
+IB2600273205 | keyword mismatch
+IB2600275081 | keyword mismatch
+IB2600278927 | keyword mismatch
+IB2600239393 | price too high
+IB2600274142 | price too high
