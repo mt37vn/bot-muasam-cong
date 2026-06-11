@@ -494,3 +494,10 @@ IB2600275081 | keyword mismatch
 IB2600278927 | keyword mismatch
 IB2600239393 | price too high
 IB2600274142 | price too high
+IB2600267709 | price too high
+IB2600272719 | price too high
+IB2600245368 | price too high
+IB2600280175 | price too high
+IB2600267308 | price too high
+IB2600246097 | price too high
+IB2600279991 | price too high
