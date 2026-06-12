@@ -501,3 +501,13 @@ IB2600280175 | price too high
 IB2600267308 | price too high
 IB2600246097 | price too high
 IB2600279991 | price too high
+IB2600152854 | price too high
+IB2600253001 | expired
+IB2600253139 | expired
+IB2600278112 | price too high
+IB2600266935 | keyword mismatch
+IB2600252989 | keyword mismatch
+IB2600269040 | price too high
+IB2600283428 | price too high
+IB2600263529 | price too high
+IB2600246239 | expired
