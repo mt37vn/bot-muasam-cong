@@ -568,3 +568,12 @@ IB2600304164 | keyword mismatch
 IB2600313872 | price too high
 IB2600309303 | price too high
 IB2600311446 | price too high
+IB2600296948 | expired
+IB2600278165 | expired
+IB2600288238 | expired
+IB2600291199 | keyword mismatch
+IB2600269424 | price too high
+IB2600271573 | price too high
+IB2600315701 | keyword mismatch
+IB2600317403 | price too high
+IB2600294452 | price too high
