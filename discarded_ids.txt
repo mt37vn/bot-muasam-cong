@@ -625,3 +625,10 @@ IB2600277157 | expired
 IB2600332131 | keyword mismatch
 IB2600339083 | price too high
 IB2600336194 | keyword mismatch
+IB2600312985 | expired
+IB2600329182 | price too high
+IB2600344366 | price too high
+IB2600342504 | price too high
+IB2600341542 | price too high
+IB2600312687 | price too high
+IB2600339624 | price too high
