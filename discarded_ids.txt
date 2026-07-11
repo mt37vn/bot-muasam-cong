@@ -660,3 +660,11 @@ IB2600338237 | price too high
 IB2600355987 | price too high
 IB2600309897 | price too high
 IB2600337877 | expired
+IB2600285319 | expired
+IB2600299981 | expired
+IB2600360243 | keyword mismatch
+IB2600353327 | keyword mismatch
+IB2600314636 | keyword mismatch
+IB2600343376 | expired
+IB2600356671 | price too high
+IB2600312479 | price too high
