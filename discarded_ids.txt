@@ -669,3 +669,4 @@ IB2600343376 | expired
 IB2600356671 | price too high
 IB2600312479 | price too high
 IB2600360559 | price too high
+IB2600359729 | keyword mismatch
